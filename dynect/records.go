@@ -1,5 +1,7 @@
 package dynect
 
+import "encoding/json"
+
 // Type AllRecordsResponse is a struct for holding a list of all URIs returned
 // from an HTTP GET call to either https://api.dynect.net/REST/AllRecord/<zone>
 // or https://api/dynect.net/REST/AllRecord/<zone>/<FQDN>/.
@@ -168,4 +170,35 @@ type DataBlock struct {
 
 	// SRV
 	Weight string `json:"weight,omitempty" bson:"weight,omitempty"`
+}
+
+// MarshalJSON is used override the standard marshalling function
+// so that values of 0 for the preference and priority fields of DataBlock
+// are not stripped by the standard 'omitempty' functionality.
+// See https://golang.org/pkg/encoding/json/#Marshal
+func (db DataBlock) MarshalJSON() ([]byte, error) {
+	type Alias DataBlock
+	if db.Preference == 0 {
+		return json.Marshal(&struct {
+			Preference int `json:"preference"`
+			Alias
+		}{
+			Preference: db.Preference,
+			Alias:      (Alias)(db),
+		})
+	}
+	if db.Priority == 0 {
+		return json.Marshal(&struct {
+			Priority int `json:"priority"`
+			Alias
+		}{
+			Priority: db.Priority,
+			Alias:    (Alias)(db),
+		})
+	}
+	return json.Marshal(&struct {
+		Alias
+	}{
+		Alias: (Alias)(db),
+	})
 }
